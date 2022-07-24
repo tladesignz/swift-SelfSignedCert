@@ -5,6 +5,12 @@
 
 import Foundation
 
+extension Data {
+    var bytes: [UInt8] {
+        Array(self)
+    }
+}
+
 struct BitString: Equatable {
     var data: Data
     var unusedBitCount: Int = 0 {

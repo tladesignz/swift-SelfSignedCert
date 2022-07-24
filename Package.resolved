@@ -2,15 +2,6 @@
   "object": {
     "pins": [
       {
-        "package": "SwiftBytes",
-        "repositoryURL": "https://github.com/dapperstout/swift-bytes.git",
-        "state": {
-          "branch": null,
-          "revision": "570b0b8d8694594a41bba998c5ad82eb711fa2de",
-          "version": "0.8.0"
-        }
-      },
-      {
         "package": "swift-crypto",
         "repositoryURL": "https://github.com/apple/swift-crypto.git",
         "state": {

@@ -4,7 +4,6 @@
 // Copyright © 2016 Stefan van den Oord. All rights reserved.
 
 import Foundation
-import SwiftBytes
 
 enum DERTag: UInt8 {
     case boolean = 1
