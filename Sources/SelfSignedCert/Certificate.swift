@@ -9,6 +9,10 @@ public struct Certificate {
     var tbsCertificate: TBSCertificate
     var algorithm: SignatureAlgorithm { tbsCertificate.signature }
     var signatureValue: BitString
+
+    public var derRepresentation: Data {
+        Data(toDER())
+    }
 }
 
 extension Certificate: ASN1Convertible {
@@ -30,7 +34,11 @@ extension Certificate {
         public var validity: Validity
         public var subject: Name
         public var subjectPublicKeyInfo: SubjectPublicKeyInfo
+        public var extensions: Extensions?
 
+        /**
+         TODO: Do not use extensions, yet: Not working, yet. Will produce invalid certificates!
+         */
         public init(
             version: Version,
             serialNo: UInt64,
@@ -38,7 +46,8 @@ extension Certificate {
             issuer: Name = .init(),
             validity: Validity,
             subject: Name = .init(),
-            subjectPublicKeyInfo: SubjectPublicKeyInfo
+            subjectPublicKeyInfo: SubjectPublicKeyInfo,
+            extensions: Extensions? = nil
         ) {
             self.version = version
             self.serialNo = serialNo
@@ -47,6 +56,7 @@ extension Certificate {
             self.validity = validity
             self.subject = subject
             self.subjectPublicKeyInfo = subjectPublicKeyInfo
+            self.extensions = extensions
         }
     }
 }
@@ -61,6 +71,10 @@ extension Certificate.TBSCertificate: ASN1Convertible {
             validity
             subject
             subjectPublicKeyInfo
+
+            if let extensions = extensions {
+                extensions
+            }
         }
     }
 }
@@ -181,6 +195,8 @@ extension Certificate.Validity: ASN1Convertible {
 extension Certificate {
     public enum SubjectPublicKeyInfo {
         case p256(P256.Signing.PublicKey)
+        case p384(P384.Signing.PublicKey)
+        case p521(P521.Signing.PublicKey)
     }
 }
 
@@ -189,13 +205,123 @@ extension Certificate.SubjectPublicKeyInfo: ASN1Convertible {
         switch self {
         case .p256(let publicKey):
             return RawDER(data: publicKey.derRepresentation)
+
+        case .p384(let publicKey):
+            return RawDER(data: publicKey.derRepresentation)
+
+        case .p521(let publicKey):
+            return RawDER(data: publicKey.derRepresentation)
+        }
+    }
+}
+
+extension Certificate {
+    public enum PrivateKey {
+        case p256(P256.Signing.PrivateKey)
+        case p384(P384.Signing.PrivateKey)
+        case p521(P521.Signing.PrivateKey)
+
+        func signature(for digest: any Digest) throws -> Data {
+            switch self {
+            case .p256(let key):
+                return try key.signature(for: digest).derRepresentation
+
+            case .p384(let key):
+                return try key.signature(for: digest).derRepresentation
+
+            case .p521(let key):
+                return try key.signature(for: digest).derRepresentation
+            }
+        }
+    }
+}
+
+extension Certificate {
+    public struct Extensions: ASN1Convertible {
+
+        public var extendedKeyUsage: ExtendedKeyUsage?
+        public var subjectAltName: SubjectAltName?
+
+        public init(extendedKeyUsage: ExtendedKeyUsage? = nil, subjectAltName: SubjectAltName? = nil) {
+            self.extendedKeyUsage = extendedKeyUsage
+            self.subjectAltName = subjectAltName
+        }
+
+        var asn1Tree: some ASN1Node {
+            ASN1Seq {
+                if let extendedKeyUsage = extendedKeyUsage {
+                    extendedKeyUsage
+                }
+
+                if let subjectAltName = subjectAltName {
+                    subjectAltName
+                }
+            }
+        }
+    }
+
+    public enum ExtendedKeyUsage: ASN1Convertible {
+        case serverAuth
+        case clientAuth
+        case codeSigning
+        case emailProtection
+        case any
+
+        var use: OID {
+            switch self {
+            case .serverAuth:
+                return [1, 3, 6, 1, 5, 5, 7, 3, 1]
+
+            case .clientAuth:
+                return [1, 3, 6, 1, 5, 5, 7, 3, 2]
+
+            case .codeSigning:
+                return [1, 3, 6, 1, 5, 5, 7, 3, 3]
+
+            case .emailProtection:
+                return [1, 3, 6, 1, 5, 5, 7, 3, 4]
+
+            case .any:
+                return [2, 5, 29, 37, 0]
+            }
+        }
+
+        public var critical: Bool {
+            false
+        }
+
+        var asn1Tree: some ASN1Node {
+            ASN1Seq {
+                OID.extendedKeyUsageOID
+                critical
+                use
+            }
+        }
+    }
+
+    public struct SubjectAltName: ASN1Convertible {
+
+        public var critical = false
+
+        public let altName: String
+
+        public init(altName: String) {
+            self.altName = altName
+        }
+
+        var asn1Tree: some ASN1Node {
+            ASN1Seq {
+                OID.subjectAltNameOID
+                critical
+                altName
+            }
         }
     }
 }
 
 extension Certificate.TBSCertificate {
     /// Generates a certificate signed using ECDSA with SHA256.
-    public func sign(with privateKey: P256.Signing.PrivateKey) throws -> Certificate {
+    public func sign(with privateKey: Certificate.PrivateKey) throws -> Certificate {
         precondition(self.signature == .ecdsaWithSHA256)
 
         let toSign = Data(toDER())
@@ -203,8 +329,9 @@ extension Certificate.TBSCertificate {
         sha256.update(data: toSign)
         let digest = sha256.finalize()
         let signature = try privateKey.signature(for: digest)
+
         return Certificate(
             tbsCertificate: self,
-            signatureValue: .init(data: signature.derRepresentation))
+            signatureValue: .init(data: signature))
     }
 }

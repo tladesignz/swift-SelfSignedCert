@@ -21,6 +21,7 @@ extension ASN1Convertible {
 
 enum ASN1 {}
 
+extension Bool: ASN1Node {}
 extension Int: ASN1Node {}
 extension Int8: ASN1Node {}
 extension Int16: ASN1Node {}

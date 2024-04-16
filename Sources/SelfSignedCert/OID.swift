@@ -86,7 +86,7 @@ extension OID {
     // MARK: Usage
     //    static let basicConstraintsOID = OID(components:[2, 5, 29, 19])
     static let keyUsageOID: Self = [2, 5, 29, 15]
-    //    static let extendedKeyUsageOID = OID(components:[2, 5, 29, 37])
+    static let extendedKeyUsageOID = OID(components:[2, 5, 29, 37])
 
     /** EXTENSIONS **/
     //    static let extendedKeyUsageServerAuthOID = OID(components:[1, 3, 6, 1, 5, 5, 7, 3, 1])
@@ -94,8 +94,7 @@ extension OID {
     //    static let extendedKeyUsageCodeSigningOID = OID(components:[1, 3, 6, 1, 5, 5, 7, 3, 3])
     //    static let extendedKeyUsageEmailProtectionOID = OID(components:[1, 3, 6, 1, 5, 5, 7, 3, 4])
     //    static let extendedKeyUsageAnyOID = OID(components:[2, 5, 29, 37, 0])
-    //    static let subjectAltNameOID = OID(components:[2, 5, 29, 17])
-    
+    static let subjectAltNameOID = OID(components:[2, 5, 29, 17])
 }
 
 extension OID: ASN1Node {}
